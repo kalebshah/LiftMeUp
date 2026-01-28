@@ -26,6 +26,8 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({ onProfileSelec
   const [newProfilePassword, setNewProfilePassword] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(AVATAR_OPTIONS[0]);
   const [passwordError, setPasswordError] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deletePasswordError, setDeletePasswordError] = useState('');
 
   useEffect(() => {
     loadProfiles();
@@ -78,7 +80,18 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({ onProfileSelec
   };
 
   const handleDeleteProfile = async () => {
-    if (!profileToDelete) return;
+    if (!profileToDelete || !deletePassword.trim()) {
+      setDeletePasswordError('Please enter the password');
+      return;
+    }
+
+    // Verify password before deleting
+    const isValid = await supabaseStorage.verifyPassword(profileToDelete.id, deletePassword);
+
+    if (!isValid) {
+      setDeletePasswordError('Incorrect password. Cannot delete profile.');
+      return;
+    }
 
     const success = await supabaseStorage.deleteProfile(profileToDelete.id);
     if (success) {
@@ -86,6 +99,8 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({ onProfileSelec
     }
     setProfileToDelete(null);
     setShowDeleteModal(false);
+    setDeletePassword('');
+    setDeletePasswordError('');
   };
 
   if (isLoading) {
@@ -277,6 +292,8 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({ onProfileSelec
         onClose={() => {
           setShowDeleteModal(false);
           setProfileToDelete(null);
+          setDeletePassword('');
+          setDeletePasswordError('');
         }}
         title="Delete Profile?"
       >
@@ -286,6 +303,28 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({ onProfileSelec
         <p className="text-yellow-400 text-sm mb-4">
           All workout data, progress, and achievements will be permanently deleted. This action cannot be undone.
         </p>
+
+        <div className="mb-4">
+          <label className="text-sm text-dark-400 mb-2 block flex items-center gap-2">
+            <Lock className="w-4 h-4" />
+            Enter profile password to confirm
+          </label>
+          <input
+            type="password"
+            value={deletePassword}
+            onChange={(e) => {
+              setDeletePassword(e.target.value);
+              setDeletePasswordError('');
+            }}
+            placeholder="Enter password"
+            className="w-full px-4 py-3 bg-dark-800 border border-dark-700 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-primary-500 transition-colors"
+            autoFocus
+          />
+          {deletePasswordError && (
+            <p className="text-red-400 text-sm mt-2">{deletePasswordError}</p>
+          )}
+        </div>
+
         <div className="flex gap-3">
           <Button
             variant="secondary"
@@ -293,6 +332,8 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({ onProfileSelec
             onClick={() => {
               setShowDeleteModal(false);
               setProfileToDelete(null);
+              setDeletePassword('');
+              setDeletePasswordError('');
             }}
           >
             Cancel
@@ -301,6 +342,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({ onProfileSelec
             variant="danger"
             className="flex-1"
             onClick={handleDeleteProfile}
+            disabled={!deletePassword.trim()}
           >
             Delete
           </Button>

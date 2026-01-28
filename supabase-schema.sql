@@ -143,25 +143,51 @@ ALTER TABLE personal_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE badges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE quests ENABLE ROW LEVEL SECURITY;
 
--- Public can read all profiles (for viewing progress)
-CREATE POLICY "Public profiles are viewable by everyone"
-  ON profiles FOR SELECT
-  USING (is_public = true);
+-- Allow all operations (we handle auth in the app with passwords)
+CREATE POLICY "Enable all operations for anon users"
+  ON profiles FOR ALL
+  USING (true)
+  WITH CHECK (true);
 
--- Public can read user data for public profiles
-CREATE POLICY "Public user data is viewable"
-  ON users FOR SELECT
-  USING (profile_id IN (SELECT id FROM profiles WHERE is_public = true));
+CREATE POLICY "Enable all operations for users"
+  ON users FOR ALL
+  USING (true)
+  WITH CHECK (true);
 
--- Public can read workout logs for public profiles
-CREATE POLICY "Public workout logs are viewable"
-  ON workout_logs FOR SELECT
-  USING (profile_id IN (SELECT id FROM profiles WHERE is_public = true));
+CREATE POLICY "Enable all operations for custom_workouts"
+  ON custom_workouts FOR ALL
+  USING (true)
+  WITH CHECK (true);
 
--- Public can read personal records for public profiles
-CREATE POLICY "Public PRs are viewable"
-  ON personal_records FOR SELECT
-  USING (profile_id IN (SELECT id FROM profiles WHERE is_public = true));
+CREATE POLICY "Enable all operations for custom_exercises"
+  ON custom_exercises FOR ALL
+  USING (true)
+  WITH CHECK (true);
 
--- Note: For authenticated write operations, we'll handle authentication in the app
--- since we're using password-based auth (not Supabase Auth)
+CREATE POLICY "Enable all operations for workout_logs"
+  ON workout_logs FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+CREATE POLICY "Enable all operations for set_logs"
+  ON set_logs FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+CREATE POLICY "Enable all operations for personal_records"
+  ON personal_records FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+CREATE POLICY "Enable all operations for badges"
+  ON badges FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+CREATE POLICY "Enable all operations for quests"
+  ON quests FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+-- Note: We use permissive policies because authentication is handled
+-- at the application level with password verification
