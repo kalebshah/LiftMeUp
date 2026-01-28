@@ -10,6 +10,7 @@ import { WorkoutComplete } from './pages/WorkoutComplete';
 import { WorkoutHistory } from './pages/WorkoutHistory';
 import { Progress } from './pages/Progress';
 import { ProfileSelector } from './pages/ProfileSelector';
+import { CustomWorkoutBuilder } from './pages/CustomWorkoutBuilder';
 import * as storage from './utils/storage';
 
 function App() {
@@ -48,6 +49,7 @@ function App() {
               <Route path="/workout/select" element={<WorkoutSelection />} />
               <Route path="/workout/active" element={<ActiveWorkout />} />
               <Route path="/workout/complete" element={<WorkoutComplete />} />
+              <Route path="/workout/custom/new" element={<CustomWorkoutBuilder />} />
               <Route path="/workout-history" element={<WorkoutHistory />} />
               <Route path="/progress" element={<Progress />} />
             </Routes>

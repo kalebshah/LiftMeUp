@@ -3,8 +3,33 @@ export interface Profile {
   id: string;
   name: string;
   avatar: string; // emoji or icon
+  passwordHash?: string; // stored in DB only
   createdAt: string;
   lastAccessedAt: string;
+  isPublic: boolean; // Allow others to view progress
+}
+
+// Custom Workout Definition (user-created)
+export interface CustomWorkoutDefinition {
+  id: string;
+  profileId: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  exercises: CustomExerciseDefinition[];
+  createdAt: string;
+}
+
+export interface CustomExerciseDefinition {
+  id: string;
+  workoutId: string;
+  name: string;
+  sets: number;
+  repRange: [number, number];
+  weightRange: [number, number];
+  unit: string;
+  orderIndex: number;
 }
 
 // User profile

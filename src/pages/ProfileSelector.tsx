@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Dumbbell, Plus, Trash2 } from 'lucide-react';
+import { Dumbbell, Plus, Trash2, Lock } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
+import { PasswordPrompt } from '../components/PasswordPrompt';
 import type { Profile } from '../types';
-import * as storage from '../utils/storage';
+import * as supabaseStorage from '../utils/supabaseStorage';
 
 interface ProfileSelectorProps {
   onProfileSelect: (profileId: string) => void;
@@ -14,37 +15,91 @@ interface ProfileSelectorProps {
 const AVATAR_OPTIONS = ['💪', '🏋️', '🔥', '⚡', '🎯', '🚀', '🦾', '👑', '⭐', '🏆', '🎮', '🎸', '🎨', '🌟', '💎'];
 
 export const ProfileSelector: React.FC<ProfileSelectorProps> = ({ onProfileSelect }) => {
-  const [profiles, setProfiles] = useState<Profile[]>(storage.getProfiles());
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [profileToDelete, setProfileToDelete] = useState<Profile | null>(null);
   const [newProfileName, setNewProfileName] = useState('');
+  const [newProfilePassword, setNewProfilePassword] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(AVATAR_OPTIONS[0]);
+  const [passwordError, setPasswordError] = useState('');
 
-  const handleCreateProfile = () => {
-    if (!newProfileName.trim()) return;
+  useEffect(() => {
+    loadProfiles();
+  }, []);
 
-    const profile = storage.createProfile(newProfileName.trim(), selectedAvatar);
-    setProfiles([...profiles, profile]);
-    setShowCreateModal(false);
-    setNewProfileName('');
-    setSelectedAvatar(AVATAR_OPTIONS[0]);
-    onProfileSelect(profile.id);
+  const loadProfiles = async () => {
+    setIsLoading(true);
+    const data = await supabaseStorage.getProfiles();
+    setProfiles(data);
+    setIsLoading(false);
+  };
+
+  const handleCreateProfile = async () => {
+    if (!newProfileName.trim() || !newProfilePassword.trim()) return;
+
+    const profile = await supabaseStorage.createProfile(
+      newProfileName.trim(),
+      selectedAvatar,
+      newProfilePassword
+    );
+
+    if (profile) {
+      setProfiles([...profiles, profile]);
+      setShowCreateModal(false);
+      setNewProfileName('');
+      setNewProfilePassword('');
+      setSelectedAvatar(AVATAR_OPTIONS[0]);
+      onProfileSelect(profile.id);
+    }
   };
 
   const handleSelectProfile = (profile: Profile) => {
-    storage.updateProfile(profile.id, { lastAccessedAt: new Date().toISOString() });
-    onProfileSelect(profile.id);
+    setSelectedProfile(profile);
+    setShowPasswordPrompt(true);
+    setPasswordError('');
   };
 
-  const handleDeleteProfile = () => {
+  const handlePasswordSubmit = async (password: string) => {
+    if (!selectedProfile) return;
+
+    const isValid = await supabaseStorage.verifyPassword(selectedProfile.id, password);
+
+    if (isValid) {
+      await supabaseStorage.updateProfileAccess(selectedProfile.id);
+      setShowPasswordPrompt(false);
+      onProfileSelect(selectedProfile.id);
+    } else {
+      setPasswordError('Incorrect password. Please try again.');
+    }
+  };
+
+  const handleDeleteProfile = async () => {
     if (!profileToDelete) return;
 
-    storage.deleteProfile(profileToDelete.id);
-    setProfiles(profiles.filter(p => p.id !== profileToDelete.id));
+    const success = await supabaseStorage.deleteProfile(profileToDelete.id);
+    if (success) {
+      setProfiles(profiles.filter(p => p.id !== profileToDelete.id));
+    }
     setProfileToDelete(null);
     setShowDeleteModal(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-dark-950 bg-mesh flex items-center justify-center">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+        >
+          <Dumbbell className="w-12 h-12 text-primary-500" />
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-dark-950 bg-mesh flex items-center justify-center p-4">
@@ -155,6 +210,24 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({ onProfileSelec
           </div>
 
           <div>
+            <label className="text-sm text-dark-400 mb-2 block flex items-center gap-2">
+              <Lock className="w-4 h-4" />
+              Password
+            </label>
+            <input
+              type="password"
+              value={newProfilePassword}
+              onChange={(e) => setNewProfilePassword(e.target.value)}
+              placeholder="Create a password"
+              className="w-full px-4 py-3 bg-dark-800 border border-dark-700 rounded-xl text-white placeholder-dark-500 focus:outline-none focus:border-primary-500 transition-colors"
+              maxLength={50}
+            />
+            <p className="text-xs text-dark-500 mt-1">
+              This will protect your profile from unauthorized access
+            </p>
+          </div>
+
+          <div>
             <label className="text-sm text-dark-400 mb-2 block">Choose Avatar</label>
             <div className="grid grid-cols-5 gap-2">
               {AVATAR_OPTIONS.map((avatar) => (
@@ -180,6 +253,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({ onProfileSelec
               onClick={() => {
                 setShowCreateModal(false);
                 setNewProfileName('');
+                setNewProfilePassword('');
                 setSelectedAvatar(AVATAR_OPTIONS[0]);
               }}
             >
@@ -189,7 +263,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({ onProfileSelec
               variant="primary"
               className="flex-1"
               onClick={handleCreateProfile}
-              disabled={!newProfileName.trim()}
+              disabled={!newProfileName.trim() || !newProfilePassword.trim()}
             >
               Create
             </Button>
@@ -232,6 +306,19 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({ onProfileSelec
           </Button>
         </div>
       </Modal>
+
+      {/* Password Prompt */}
+      <PasswordPrompt
+        isOpen={showPasswordPrompt}
+        profileName={selectedProfile?.name || ''}
+        onSubmit={handlePasswordSubmit}
+        onClose={() => {
+          setShowPasswordPrompt(false);
+          setSelectedProfile(null);
+          setPasswordError('');
+        }}
+        error={passwordError}
+      />
     </div>
   );
 };

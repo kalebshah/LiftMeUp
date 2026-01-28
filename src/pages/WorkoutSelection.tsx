@@ -1,18 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { ArrowLeft, Calendar, Clock, Info } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Info, Plus } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { WorkoutCard } from '../components/WorkoutCard';
 import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
 import { WORKOUTS } from '../data/workouts';
 import { formatDate, formatTimeAgo } from '../utils/helpers';
+import * as supabaseStorage from '../utils/supabaseStorage';
+import type { CustomWorkoutDefinition } from '../types';
 
 export const WorkoutSelection: React.FC = () => {
   const navigate = useNavigate();
   const { state, dispatch, getSuggestedWorkout, getLastWorkoutOfType } = useApp();
   const { selectedDate, workoutLogs } = state;
+  const [customWorkouts, setCustomWorkouts] = useState<CustomWorkoutDefinition[]>([]);
+  const [isLoadingCustom, setIsLoadingCustom] = useState(true);
+
+  useEffect(() => {
+    loadCustomWorkouts();
+  }, []);
+
+  const loadCustomWorkouts = async () => {
+    const profileId = localStorage.getItem('liftmeup_current_profile_id');
+    if (profileId) {
+      const workouts = await supabaseStorage.getCustomWorkouts(profileId);
+      setCustomWorkouts(workouts);
+    }
+    setIsLoadingCustom(false);
+  };
   
   const suggestedWorkoutId = getSuggestedWorkout();
   
@@ -69,9 +87,65 @@ export const WorkoutSelection: React.FC = () => {
             </Card>
           </motion.div>
         )}
-        
-        {/* Workout cards */}
+
+        {/* Create Custom Workout Button */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <Button
+            variant="primary"
+            size="lg"
+            className="w-full"
+            onClick={() => navigate('/workout/custom/new')}
+            leftIcon={<Plus className="w-5 h-5" />}
+          >
+            Create Custom Workout
+          </Button>
+        </motion.div>
+
+        {/* Custom Workouts */}
+        {!isLoadingCustom && customWorkouts.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <span>Your Custom Workouts</span>
+              <span className="text-sm font-normal text-dark-400">({customWorkouts.length})</span>
+            </h2>
+            {customWorkouts.map((workout, index) => (
+              <WorkoutCard
+                key={workout.id}
+                workout={{
+                  id: 0 as any, // Custom workout
+                  name: workout.name,
+                  description: workout.description,
+                  icon: workout.icon,
+                  color: workout.color,
+                  exercises: workout.exercises.map(ex => ({
+                    id: ex.id,
+                    name: ex.name,
+                    sets: ex.sets,
+                    repRange: ex.repRange,
+                    weightRange: ex.weightRange,
+                    unit: ex.unit,
+                  })),
+                }}
+                lastWorkout={null}
+                isRecommended={false}
+                isBackToBack={false}
+                onClick={() => {
+                  // TODO: Handle custom workout selection
+                  console.log('Selected custom workout:', workout.id);
+                }}
+                delay={index * 0.1}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Preset Workout cards */}
         <div className="space-y-4">
+          <h2 className="text-lg font-bold text-white">Preset Workouts</h2>
           {WORKOUTS.map((workout, index) => {
             const lastOfType = getLastWorkoutOfType(workout.id);
             const isRecommended = workout.id === suggestedWorkoutId;
