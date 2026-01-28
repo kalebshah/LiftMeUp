@@ -34,6 +34,7 @@ export const createProfile = (name: string, avatar: string): Profile => {
     avatar,
     createdAt: new Date().toISOString(),
     lastAccessedAt: new Date().toISOString(),
+    isPublic: true,
   };
 
   const profiles = getProfiles();

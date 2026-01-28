@@ -6,8 +6,7 @@ import type {
   Quest,
   PersonalRecord,
   Profile,
-  CustomWorkoutDefinition,
-  CustomExerciseDefinition
+  CustomWorkoutDefinition
 } from '../types';
 import { BADGES, WORKOUTS } from '../data/workouts';
 import bcrypt from 'bcryptjs';
@@ -398,7 +397,7 @@ export const saveWorkoutLog = async (
   log: WorkoutLog
 ): Promise<boolean> => {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('workout_logs')
       .upsert({
         id: log.id,
@@ -525,6 +524,7 @@ export const getQuests = async (profileId: string): Promise<Quest[]> => {
       id: q.id,
       name: q.name,
       description: q.description,
+      type: q.type,
       target: q.target,
       current: q.current,
       xpReward: q.xp_reward,
@@ -552,6 +552,7 @@ export const saveQuests = async (
       quest_id: q.id,
       name: q.name,
       description: q.description,
+      type: q.type,
       target: q.target,
       current: q.current,
       xp_reward: q.xpReward,

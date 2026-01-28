@@ -6,7 +6,6 @@ import {
   Plus,
   Trash2,
   Save,
-  Dumbbell,
   GripVertical
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';

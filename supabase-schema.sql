@@ -110,6 +110,7 @@ CREATE TABLE quests (
   quest_id VARCHAR(50) NOT NULL,
   name VARCHAR(100) NOT NULL,
   description TEXT,
+  type VARCHAR(20) NOT NULL,
   target INTEGER NOT NULL,
   current INTEGER DEFAULT 0,
   xp_reward INTEGER NOT NULL,
